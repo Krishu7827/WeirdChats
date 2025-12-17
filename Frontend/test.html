@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weird Chats Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h2>Weird Chats Test</h2>
+    
+    <div>
+        <input id="myUserId" placeholder="Your User ID" value="user1">
+        <input id="targetUserId" placeholder="Target User ID" value="user2">
+        <input id="messageInput" placeholder="Type message...">
+        <button onclick="registerUser()">Register</button>
+        <button onclick="sendMessage()">Send Private Message</button>
+    </div>
+    
+    <div id="logs" style="margin-top: 20px; padding: 10px; background: #f5f5f5; max-height: 300px; overflow-y: auto;">
+        <h3>Connection Logs:</h3>
+        <div id="logList"></div>
+    </div>
+    
+    <div id="messages" style="margin-top: 20px; padding: 10px; background: #e8f4f8; max-height: 300px; overflow-y: auto;">
+        <h3>Messages:</h3>
+        <div id="messageList"></div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3000/private-chat'); // Changed port to 3000
+        
+        socket.on('connect', () => {
+            logMessage('Connected to chat server', 'green');
+        });
+        
+        socket.on('disconnect', (reason) => {
+            logMessage(`Disconnected: ${reason}`, 'red');
+        });
+        
+        socket.on('connect_error', (error) => {
+            logMessage(`Connection Error: ${error}`, 'red');
+        });
+        
+        socket.on('privateMessage', (message) => {
+            console.log('Received private message:', message);
+            addMessage(`FROM ${message.senderId}: ${message.text}`);
+        });
+        
+        socket.on('messageSent', (status) => {
+            logMessage(`Message ${status.messageId} sent to ${status.to}`, 'blue');
+        });
+        
+        socket.on('messageFailed', (data) => {
+            logMessage(`Message failed: ${data.message} to ${data.receiverId}`, 'orange');
+        });
+        
+        socket.on('registrationSuccess', (data) => {
+            logMessage(`Successfully registered as ${data.userId}`, 'green');
+        });
+        
+        function registerUser() {
+            const userId = document.getElementById('myUserId').value;
+            if (userId) {
+                socket.emit('registerUser', { userId: userId });
+                logMessage(`Registering user: ${userId}`);
+            }
+        }
+        
+        function sendMessage() {
+            const targetUserId = document.getElementById('targetUserId').value;
+            const myUserId = document.getElementById('myUserId').value;
+            const messageText = document.getElementById('messageInput').value;
+            
+            if (messageText.trim() && targetUserId && myUserId) {
+                socket.emit('sendPrivateMessage', {
+                    text: messageText,
+                    receiverId: targetUserId,
+                    senderId: myUserId
+                });
+                
+                addMessage(`TO ${targetUserId}: ${messageText}`);
+                document.getElementById('messageInput').value = '';
+            } else {
+                logMessage('Please fill in all fields', 'red');
+            }
+        }
+        
+        function logMessage(text, color = 'black') {
+            const logList = document.getElementById('logList');
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            div.style.color = color;
+            logList.appendChild(div);
+            logList.scrollTop = logList.scrollHeight;
+        }
+        
+        function addMessage(text) {
+            const messageList = document.getElementById('messageList');
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            div.style.marginBottom = '5px';
+            messageList.appendChild(div);
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+    </script>
+</body>
+</html>
