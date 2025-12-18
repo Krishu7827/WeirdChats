@@ -9,6 +9,7 @@ interface Message {
   timestamp: number;
 }
 
+
 interface UseSocketReturn {
   socket: Socket | null;
   isConnected: boolean;
